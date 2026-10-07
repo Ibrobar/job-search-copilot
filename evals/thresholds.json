@@ -1,0 +1,5 @@
+{
+  "fabricationRate": { "max": 0, "note": "Unsourced or unsupported claims across the golden set. Zero tolerance." },
+  "fitScoreMae": { "max": 12, "note": "Mean absolute error vs labeled fit scores (0-100). Initial value; tighten once measured." },
+  "maxTokensPerRun": 200000
+}

@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+  - evals
+allowBuilds:
+  esbuild: true
+  sharp: false
+  unrs-resolver: false
