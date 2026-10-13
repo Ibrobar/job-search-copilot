@@ -1,5 +1,8 @@
 {
-  "fabricationRate": { "max": 0, "note": "Unsourced or unsupported claims across the golden set. Zero tolerance." },
-  "fitScoreMae": { "max": 12, "note": "Mean absolute error vs labeled fit scores (0-100). Initial value; tighten once measured." },
-  "maxTokensPerRun": 200000
+  "fabrication": { "maxLeaked": 0, "maxDraftRejectionRate": 0.05 },
+  "faithfulness": { "minClaimRate": 0.95, "minRequirementRate": 0.9 },
+  "evidenceAblation": { "minDrop": 1, "minPassRate": 0.9 },
+  "personaOrdering": { "minAccuracy": 0.9 },
+  "stability": { "maxMeanAbsDiff": 8 },
+  "budget": { "maxTokensPerRun": 3000000 }
 }

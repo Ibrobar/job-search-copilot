@@ -5,16 +5,17 @@ const DIMS = 256;
 
 /**
  * Offline client for unit tests and keyless local runs. Embeddings are hashed bag-of-words,
- * so texts sharing words land near each other; chat answers come from the supplied responder.
+ * so texts sharing words land near each other; chat answers come from the supplied responder,
+ * which gets the schema name to tell calls apart.
  */
 export class MockLlmClient implements LlmClient {
   readonly calls: ChatMessage[][] = [];
 
-  constructor(private readonly respond: (messages: ChatMessage[]) => unknown = () => ({})) {}
+  constructor(private readonly respond: (messages: ChatMessage[], schemaName: string) => unknown = () => ({})) {}
 
   async chatJson<T>(args: { schema: z.ZodType<T>; schemaName: string; messages: ChatMessage[] }) {
     this.calls.push(args.messages);
-    return { data: args.schema.parse(this.respond(args.messages)), usage: usage() };
+    return { data: args.schema.parse(this.respond(args.messages, args.schemaName)), usage: usage() };
   }
 
   async embed(texts: string[]) {

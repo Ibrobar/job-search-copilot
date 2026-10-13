@@ -18,28 +18,42 @@ export const ClaimSchema = z.object({
 });
 export type Claim = z.infer<typeof ClaimSchema>;
 
-/** One must-have from the JD and how well the user's facts cover it. */
-export const RequirementSchema = z.object({
+/** One must-have from the JD, extracted without looking at any candidate. */
+export const RequirementSpecSchema = z.object({
   name: z.string().min(1),
   importance: z.enum(["core", "nice"]),
+});
+export type RequirementSpec = z.infer<typeof RequirementSpecSchema>;
+
+export const RequirementListSchema = z.object({ requirements: z.array(RequirementSpecSchema) });
+
+/** How well the user's facts cover one requirement. */
+export const CoverageSchema = z.object({
+  /** The requirement's number as listed in the prompt (1-based). Names get mangled; numbers don't. */
+  requirement: z.number().int(),
   coverage: z.enum(["full", "partial", "none"]),
   sourceFactIds: z.array(z.string()),
 });
+
+export const RequirementSchema = RequirementSpecSchema.extend(CoverageSchema.omit({ requirement: true }).shape);
 export type Requirement = z.infer<typeof RequirementSchema>;
 
-/** What the model returns. The fit score is computed from `requirements` in code, not by the model. */
+/** What the tailoring model returns. The fit score is computed from coverage in code, not by the model. */
 export const TailorDraftSchema = z.object({
-  requirements: z.array(RequirementSchema),
+  coverage: z.array(CoverageSchema),
   summary: ClaimSchema,
   bullets: z.array(ClaimSchema),
   skills: z.array(z.string()),
 });
 export type TailorDraft = z.infer<typeof TailorDraftSchema>;
 
-export const TailorResultSchema = TailorDraftSchema.extend({
+export const TailorResultSchema = z.object({
+  requirements: z.array(RequirementSchema),
+  summary: ClaimSchema.nullable(),
+  bullets: z.array(ClaimSchema),
+  skills: z.array(z.string()),
   fitScore: z.number().int().min(0).max(100),
   matchedSkills: z.array(z.string()),
   missingSkills: z.array(z.string()),
-  summary: ClaimSchema.nullable(),
 });
 export type TailorResult = z.infer<typeof TailorResultSchema>;

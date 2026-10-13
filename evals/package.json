@@ -7,9 +7,12 @@
     "typecheck": "tsc --noEmit",
     "evals": "tsx src/run.ts",
     "label": "tsx src/label.ts",
-    "import-jobs": "tsx src/import-jobs.ts"
+    "import-jobs": "tsx src/import-jobs.ts",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@jsc/core": "workspace:*"
-  }
+    "@jsc/core": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {}
 }

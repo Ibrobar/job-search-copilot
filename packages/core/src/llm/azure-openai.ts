@@ -10,6 +10,8 @@ export type AzureOpenAiConfig = {
   apiVersion?: string;
   /** Caps output per call. Reasoning models count hidden reasoning tokens against this too. */
   maxOutputTokens?: number;
+  /** Retries on 429/5xx with backoff. Evals raise this to ride out rate limits. */
+  maxRetries?: number;
   /** Defaults to DefaultAzureCredential: managed identity in Azure, `az login` locally. No API keys. */
   credential?: TokenCredential;
 };
@@ -22,11 +24,12 @@ export class AzureOpenAiClient implements LlmClient {
     this.client = new AzureOpenAI({
       endpoint: cfg.endpoint,
       apiVersion: cfg.apiVersion ?? "2025-04-01-preview",
+      maxRetries: cfg.maxRetries ?? 2,
       azureADTokenProvider: getBearerTokenProvider(credential, "https://cognitiveservices.azure.com/.default"),
     });
   }
 
-  static fromEnv(env: NodeJS.ProcessEnv = process.env): AzureOpenAiClient {
+  static fromEnv(env: NodeJS.ProcessEnv = process.env, overrides: Partial<AzureOpenAiConfig> = {}): AzureOpenAiClient {
     const need = (k: string) => {
       const v = env[k];
       if (!v) throw new Error(`Missing env var ${k}`);
@@ -36,6 +39,7 @@ export class AzureOpenAiClient implements LlmClient {
       endpoint: need("AZURE_OPENAI_ENDPOINT"),
       chatDeployment: need("AZURE_OPENAI_CHAT_DEPLOYMENT"),
       embeddingDeployment: need("AZURE_OPENAI_EMBEDDING_DEPLOYMENT"),
+      ...overrides,
     });
   }
 

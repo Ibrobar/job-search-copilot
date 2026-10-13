@@ -1,4 +1,4 @@
-import type { Fact, TailorDraft } from "./schemas";
+import type { Claim, Fact, Requirement } from "./schemas";
 
 export type TruthViolation =
   | { kind: "unsourced-claim"; text: string }
@@ -11,10 +11,10 @@ export type TruthViolation =
  * in the user's facts, and every requirement marked covered must cite evidence. Semantic faithfulness
  * (does the claim say what the fact says) is checked separately by the eval suite.
  */
-export function checkTruthfulness(result: Pick<TailorDraft, "bullets" | "skills"> & {
-  summary: TailorDraft["summary"] | null;
-  requirements?: TailorDraft["requirements"];
-}, facts: Fact[]): TruthViolation[] {
+export function checkTruthfulness(
+  result: { summary: Claim | null; bullets: Claim[]; skills: string[]; requirements?: Requirement[] },
+  facts: Fact[],
+): TruthViolation[] {
   const ids = new Set(facts.map((f) => f.id));
   const knownSkills = new Set(facts.flatMap((f) => f.skills).flatMap(skillVariants).map(normalizeSkill));
   const violations: TruthViolation[] = [];
