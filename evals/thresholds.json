@@ -1,4 +1,5 @@
 {
+  "judgeCalibration": { "minAccuracy": 0.9 },
   "fabrication": { "maxLeaked": 0, "maxDraftRejectionRate": 0.05 },
   "faithfulness": { "minClaimRate": 0.95, "minRequirementRate": 0.9 },
   "evidenceAblation": { "minDrop": 1, "minPassRate": 0.9 },

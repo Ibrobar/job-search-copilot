@@ -14,7 +14,7 @@ import {
   tailorForJob,
 } from "@jsc/core";
 import type { GoldenJob } from "./import-jobs";
-import { JUDGE_PROMPT_VERSION, judgeFaithfulness } from "./judge";
+import { type CalibrationCase, JUDGE_PROMPT_VERSION, calibrateJudge, claimsOf, judgeClaims } from "./judge";
 import { type JobRun, type Thresholds, computeMetrics, failedGates } from "./metrics";
 import { BudgetExceededError, TokenMeter, metered } from "./metered";
 import { type Stack, favoredStack } from "./stack";
@@ -101,12 +101,12 @@ async function evalJob(job: GoldenJob, index: number): Promise<JobRun> {
     draftedClaims: drafted,
     rejected: main.rejected,
     leaked: checkTruthfulness(r, facts),
-    verdicts: await judgeFaithfulness(judge, r, facts),
+    verdicts: await judgeClaims(judge, claimsOf(r), facts),
   };
 
-  // Ablation: remove the evidence behind every fully covered core requirement; the score must fall.
+  // Ablation: remove the evidence behind every covered core requirement; the score must fall.
   const coreEvidence = new Set(
-    r.requirements.filter((q) => q.importance === "core" && q.coverage === "full").flatMap((q) => q.sourceFactIds),
+    r.requirements.filter((q) => q.importance === "core" && q.coverage !== "none").flatMap((q) => q.sourceFactIds),
   );
   if (coreEvidence.size > 0) {
     const ablated = await tailor("ibrahim", job.jd, { requirements, dropIds: coreEvidence });
@@ -148,7 +148,11 @@ async function pool<T, R>(items: T[], n: number, fn: (item: T, i: number) => Pro
 const started = Date.now();
 console.log(`Evaluating ${jobs.length} jobs (prompts ${REQUIREMENTS_PROMPT_VERSION} + ${TAILOR_PROMPT_VERSION}, judge ${JUDGE_PROMPT_VERSION}, cap ${meter.maxTokens} tokens)`);
 let runs: JobRun[];
+let calibration: Awaited<ReturnType<typeof calibrateJudge>>;
 try {
+  // Check the judge first: if it can't tell planted fabrications from paraphrases, its verdicts mean nothing.
+  const { cases } = JSON.parse(read("golden/judge-calibration.json")) as { cases: CalibrationCase[] };
+  calibration = await calibrateJudge(judge, cases, profiles.ibrahim!.facts);
   runs = await pool(jobs, Number(args.concurrency), evalJob);
 } catch (e) {
   if (e instanceof BudgetExceededError) {
@@ -158,7 +162,7 @@ try {
   throw e;
 }
 
-const metrics = computeMetrics(runs, thresholds);
+const metrics = computeMetrics(runs, thresholds, calibration);
 const failed = failedGates(metrics);
 const tailorCalls = meter.calls.filter((c) => c.role === "tailor");
 const p50 = (xs: number[]) => xs.sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
@@ -190,6 +194,7 @@ if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMM
 console.log(`\n${md}`);
 const unsupported = runs.flatMap((r) => r.verdicts.filter((v) => !v.supported).map((v) => `  [${r.company}] ${v.text}\n      -> ${v.reason}`));
 if (unsupported.length) console.log(`Unsupported claims (judge):\n${unsupported.join("\n")}`);
+for (const m of calibration.misses) console.log(`Judge calibration miss (expected ${m.expected}): ${m.text}\n      -> ${m.reason}`);
 process.exit(summary.pass ? 0 : 1);
 
 function required(k: string): string {

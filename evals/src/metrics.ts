@@ -21,6 +21,7 @@ export type JobRun = {
 };
 
 export type Thresholds = {
+  judgeCalibration: { minAccuracy: number };
   fabrication: { maxLeaked: number; maxDraftRejectionRate: number };
   faithfulness: { minClaimRate: number; minRequirementRate: number };
   evidenceAblation: { minDrop: number; minPassRate: number };
@@ -35,7 +36,9 @@ const REPORT_ONLY = "report only";
 const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 const rate = (num: number, den: number) => (den === 0 ? 1 : num / den);
 
-export function computeMetrics(runs: JobRun[], t: Thresholds): Metric[] {
+export type Calibration = { accuracy: number; n: number };
+
+export function computeMetrics(runs: JobRun[], t: Thresholds, calibration?: Calibration): Metric[] {
   const leaked = runs.reduce((s, r) => s + r.leaked.length, 0);
   const rejectedClaims = runs.reduce((s, r) => s + r.rejected.filter((v) => "text" in v).length, 0);
   const drafted = runs.reduce((s, r) => s + r.draftedClaims, 0);
@@ -67,6 +70,14 @@ export function computeMetrics(runs: JobRun[], t: Thresholds): Metric[] {
   const bandAgree = rate(second.filter((r) => matchBand(r.score) === matchBand(r.secondOpinionScore!)).length, second.length);
 
   return [
+    {
+      name: "Judge calibration (known-answer cases)",
+      value: calibration?.accuracy ?? 0,
+      display: calibration ? pct(calibration.accuracy) : "not run",
+      threshold: `>= ${pct(t.judgeCalibration.minAccuracy)}`,
+      pass: calibration ? calibration.accuracy >= t.judgeCalibration.minAccuracy : null,
+      n: calibration?.n ?? 0,
+    },
     { name: "Fabricated claims in output", value: leaked, display: String(leaked), threshold: `<= ${t.fabrication.maxLeaked}`, pass: leaked <= t.fabrication.maxLeaked, n: runs.length },
     { name: "Draft claims rejected by guard", value: draftRejection, display: `${pct(draftRejection)} (${rejectedClaims}/${drafted})`, threshold: `<= ${pct(t.fabrication.maxDraftRejectionRate)}`, pass: drafted ? draftRejection <= t.fabrication.maxDraftRejectionRate : null, n: drafted },
     { name: "Claim faithfulness (judge)", value: claimRate, display: pct(claimRate), threshold: `>= ${pct(t.faithfulness.minClaimRate)}`, pass: claimVerdicts.length ? claimRate >= t.faithfulness.minClaimRate : null, n: claimVerdicts.length },

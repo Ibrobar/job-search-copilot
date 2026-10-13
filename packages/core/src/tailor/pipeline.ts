@@ -1,6 +1,6 @@
 import type { LlmClient, LlmUsage } from "../llm/types";
 import { REQUIREMENTS_PROMPT_VERSION, REQUIREMENTS_SYSTEM_PROMPT, requirementsUserPrompt } from "../prompts/requirements.v1";
-import { TAILOR_PROMPT_VERSION, tailorSystemPrompt, tailorUserPrompt } from "../prompts/tailor.v2";
+import { TAILOR_PROMPT_VERSION, tailorSystemPrompt, tailorUserPrompt } from "../prompts/tailor.v3";
 import type { FactStore } from "../retrieval/store";
 import {
   type Fact,

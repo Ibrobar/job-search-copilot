@@ -1,0 +1,22 @@
+{
+  "_comment": "Known-answer cases for the faithfulness judge. Each claim cites facts from golden/profiles/ibrahim.md. 'expected' is set by construction: faithful paraphrases are true, planted additions are false. If the judge misses these, its faithfulness numbers can't be trusted.",
+  "cases": [
+    { "kind": "bullet", "text": "Developed a Deno/TypeScript edge function serving as an action-routed REST API, with concurrency control and alert deduplication.", "ids": ["experience-4"], "expected": true, "why": "verb paraphrase only" },
+    { "kind": "bullet", "text": "At Boycat, owned the Price Watch feature end to end across three GitHub repos, from the extension UI to a Supabase edge function behind OAuth2 sign-in.", "ids": ["experience-3"], "expected": true, "why": "employer from the fact's context" },
+    { "kind": "bullet", "text": "Triaged 50+ daily alerts in Zenoss and ServiceNow while diagnosing production issues in Docker containers on Linux.", "ids": ["experience-13"], "expected": true, "why": "reordered restatement" },
+    { "kind": "bullet", "text": "Built a RESTful API with OAuth2 authentication and webhook integration for a Laravel (PHP) app serving 150,000+ users.", "ids": ["experience-9", "experience-10"], "expected": true, "why": "combines two cited facts" },
+    { "kind": "bullet", "text": "Migrated the Amazon data layer from PA-API to the Creators API using a recursive response transformer.", "ids": ["experience-6"], "expected": true, "why": "near-verbatim" },
+    { "kind": "summary", "text": "Full-stack engineer with a B.S. in Software Engineering from UT Dallas who builds with React, Next.js and TypeScript.", "ids": ["summary-1", "summary-2"], "expected": true, "why": "summary built from summary facts" },
+    { "kind": "requirement", "text": "The candidate fully meets: REST API development", "ids": ["experience-4", "experience-10"], "expected": true, "why": "two hands-on REST API facts" },
+    { "kind": "requirement", "text": "The candidate fully meets: Docker", "ids": ["experience-13"], "expected": true, "why": "hands-on Docker in production" },
+
+    { "kind": "bullet", "text": "Built a Deno/TypeScript edge function REST API that cut alert latency by 40%.", "ids": ["experience-4"], "expected": false, "why": "invented metric" },
+    { "kind": "bullet", "text": "Led a team of 4 engineers to own the Price Watch feature across three GitHub repos.", "ids": ["experience-3"], "expected": false, "why": "invented team leadership" },
+    { "kind": "bullet", "text": "Fixed production extension bugs for a Chrome extension used by millions of shoppers.", "ids": ["experience-5"], "expected": false, "why": "inflated scale" },
+    { "kind": "bullet", "text": "Built a RESTful API with OAuth2 and GraphQL subscriptions for a Laravel app serving 150,000+ users.", "ids": ["experience-9", "experience-10"], "expected": false, "why": "invented technology" },
+    { "kind": "bullet", "text": "Diagnosed production issues in Docker containers on Linux, resolving network, permissions and data-access problems for customers.", "ids": ["experience-13"], "expected": false, "why": "invented specifics" },
+    { "kind": "requirement", "text": "The candidate fully meets: Integration with the Anthropic Claude API", "ids": ["project-2"], "expected": false, "why": "used Claude Code, never integrated the API" },
+    { "kind": "requirement", "text": "The candidate fully meets: Kubernetes", "ids": ["experience-13"], "expected": false, "why": "Docker is adjacent, not Kubernetes" },
+    { "kind": "requirement", "text": "The candidate fully meets: Python", "ids": ["skill-1"], "expected": false, "why": "skills list only" }
+  ]
+}

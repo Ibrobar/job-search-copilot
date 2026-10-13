@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type JobRun, type Thresholds, computeMetrics, failedGates } from "./metrics";
 
 const t: Thresholds = {
+  judgeCalibration: { minAccuracy: 0.9 },
   fabrication: { maxLeaked: 0, maxDraftRejectionRate: 0.05 },
   faithfulness: { minClaimRate: 0.95, minRequirementRate: 0.9 },
   evidenceAblation: { minDrop: 10, minPassRate: 0.9 },
@@ -29,6 +30,7 @@ describe("computeMetrics", () => {
     const ms = computeMetrics([run()], t);
     expect(ms.find((m) => m.name.startsWith("Persona"))?.pass).toBeNull();
     expect(failedGates(ms).map((m) => m.name)).toEqual([
+      "Judge calibration (known-answer cases)",
       "Requirement coverage faithfulness (judge)",
       "Score drops when evidence removed",
       "Persona ordering accuracy",
@@ -46,7 +48,7 @@ describe("computeMetrics", () => {
       persona: { favored: "web", scores: { web: 80, java: 40 } },
       rerunScore: 78,
     });
-    expect(failedGates(computeMetrics([full], t))).toEqual([]);
+    expect(failedGates(computeMetrics([full], t, { accuracy: 1, n: 16 }))).toEqual([]);
   });
 
   it("fails on any fabricated claim left in the output", () => {
