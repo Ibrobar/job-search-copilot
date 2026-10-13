@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "evals": "tsx src/run.ts"
+    "evals": "tsx src/run.ts",
+    "label": "tsx src/label.ts",
+    "import-jobs": "tsx src/import-jobs.ts"
   },
-  "dependencies": { "@jsc/core": "workspace:*" }
+  "dependencies": {
+    "@jsc/core": "workspace:*"
+  }
 }
