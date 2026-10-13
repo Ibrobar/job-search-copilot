@@ -1,8 +1,8 @@
 {
   "judgeCalibration": { "minAccuracy": 0.9 },
   "fabrication": { "maxLeaked": 0, "maxDraftRejectionRate": 0.05 },
-  "evidenceAblation": { "minDrop": 1, "minPassRate": 0.9 },
+  "evidenceAblation": { "minExpectedDrop": 15, "minAvgDrop": 15 },
   "personaOrdering": { "minAccuracy": 0.9 },
   "stability": { "maxMeanAbsDiff": 8 },
-  "budget": { "maxTokensPerRun": 3000000 }
+  "budget": { "maxTokensPerRun": 1500000 }
 }

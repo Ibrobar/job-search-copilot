@@ -4,7 +4,7 @@ import { type JobRun, type Thresholds, computeMetrics, failedGates } from "./met
 const t: Thresholds = {
   judgeCalibration: { minAccuracy: 0.9 },
   fabrication: { maxLeaked: 0, maxDraftRejectionRate: 0.05 },
-  evidenceAblation: { minDrop: 10, minPassRate: 0.9 },
+  evidenceAblation: { minExpectedDrop: 15, minAvgDrop: 15 },
   personaOrdering: { minAccuracy: 0.9 },
   stability: { maxMeanAbsDiff: 8 },
   budget: { maxTokensPerRun: 1 },
@@ -29,7 +29,7 @@ describe("computeMetrics", () => {
     const ms = computeMetrics([run()], t);
     expect(ms.find((m) => m.name.startsWith("Persona"))?.pass).toBeNull();
     expect(failedGates(ms).map((m) => m.name)).toEqual([
-      "Score drops when evidence removed",
+      "Average score drop when evidence removed",
       "Persona ordering accuracy",
       "Re-run score difference (mean abs)",
     ]);
@@ -41,7 +41,7 @@ describe("computeMetrics", () => {
         { kind: "bullet", text: "a", supported: true, reason: "" },
         { kind: "requirement", text: "b", supported: true, reason: "" },
       ],
-      ablation: { removedFactIds: [], score: 50 },
+      ablation: { removedFactIds: [], score: 50, expectedDrop: 30 },
       persona: { favored: "web", scores: { web: 80, java: 40 } },
       rerunScore: 78,
     });
@@ -78,9 +78,17 @@ describe("computeMetrics", () => {
     expect(metric([r], "Requirement coverage").value).toBe(0);
   });
 
-  it("counts an ablation as passing only if the score drops by the minimum", () => {
-    const runs = [run({ score: 80, ablation: { removedFactIds: [], score: 70 } }), run({ score: 80, ablation: { removedFactIds: [], score: 75 } })];
-    expect(metric(runs, "Score drops").value).toBe(0.5);
+  it("averages the ablation drop and ignores jobs whose evidence was worth too little", () => {
+    const runs = [
+      run({ score: 80, ablation: { removedFactIds: [], score: 50, expectedDrop: 40 } }), // drop 30
+      run({ score: 60, ablation: { removedFactIds: [], score: 64, expectedDrop: 30 } }), // rose 4
+      run({ score: 5, ablation: { removedFactIds: [], score: 9, expectedDrop: 4 } }), // noise, ignored
+    ];
+    const m = metric(runs, "Average score drop");
+    expect(m.value).toBe(13);
+    expect(m.n).toBe(2);
+    expect(m.display).toBe("13.0 pts (1 rose)");
+    expect(m.pass).toBe(false);
   });
 
   it("scores persona ordering pairwise against the favored persona", () => {

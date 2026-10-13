@@ -14,7 +14,8 @@ export type JobRun = {
   /** Violations left in the final output. Must always be empty. */
   leaked: TruthViolation[];
   verdicts: ClaimVerdict[];
-  ablation?: { removedFactIds: string[]; score: number };
+  /** expectedDrop: points the removed evidence was worth in the original score. */
+  ablation?: { removedFactIds: string[]; score: number; expectedDrop: number };
   rerunScore?: number;
   secondOpinionScore?: number;
   persona?: { favored: Stack; scores: Partial<Record<Stack, number>> };
@@ -23,7 +24,8 @@ export type JobRun = {
 export type Thresholds = {
   judgeCalibration: { minAccuracy: number };
   fabrication: { maxLeaked: number; maxDraftRejectionRate: number };
-  evidenceAblation: { minDrop: number; minPassRate: number };
+  /** Only jobs whose removed evidence was worth at least minExpectedDrop points count (smaller is noise). */
+  evidenceAblation: { minExpectedDrop: number; minAvgDrop: number };
   personaOrdering: { minAccuracy: number };
   stability: { maxMeanAbsDiff: number };
   budget: { maxTokensPerRun: number };
@@ -48,8 +50,12 @@ export function computeMetrics(runs: JobRun[], t: Thresholds, calibration?: Cali
   const claimRate = rate(claimVerdicts.filter((v) => v.supported).length, claimVerdicts.length);
   const reqRate = rate(reqVerdicts.filter((v) => v.supported).length, reqVerdicts.length);
 
-  const ablated = runs.filter((r) => r.ablation);
-  const ablationPass = rate(ablated.filter((r) => r.score - r.ablation!.score >= t.evidenceAblation.minDrop).length, ablated.length);
+  // Averaged across jobs: one noisy job can't flip the gate, and a job whose evidence was worth
+  // only a few points (within re-run noise) doesn't count at all.
+  const ablated = runs.filter((r) => r.ablation && r.ablation.expectedDrop >= t.evidenceAblation.minExpectedDrop);
+  const drops = ablated.map((r) => r.score - r.ablation!.score);
+  const avgDrop = drops.length ? drops.reduce((s, d) => s + d, 0) / drops.length : 0;
+  const rose = drops.filter((d) => d < 0).length;
 
   const pairs = runs.flatMap((r) => {
     if (!r.persona) return [];
@@ -83,7 +89,7 @@ export function computeMetrics(runs: JobRun[], t: Thresholds, calibration?: Cali
     // Faithfulness is informational: reported when the judge runs (--judge), never a gate.
     { name: "Claim faithfulness (judge)", value: claimRate, display: claimVerdicts.length ? pct(claimRate) : "not run", threshold: REPORT_ONLY, pass: null, n: claimVerdicts.length },
     { name: "Requirement coverage faithfulness (judge)", value: reqRate, display: reqVerdicts.length ? pct(reqRate) : "not run", threshold: REPORT_ONLY, pass: null, n: reqVerdicts.length },
-    { name: "Score drops when evidence removed", value: ablationPass, display: pct(ablationPass), threshold: `>= ${pct(t.evidenceAblation.minPassRate)}`, pass: ablated.length ? ablationPass >= t.evidenceAblation.minPassRate : null, n: ablated.length },
+    { name: "Average score drop when evidence removed", value: avgDrop, display: `${avgDrop.toFixed(1)} pts (${rose} rose)`, threshold: `>= ${t.evidenceAblation.minAvgDrop} pts`, pass: ablated.length ? avgDrop >= t.evidenceAblation.minAvgDrop : null, n: ablated.length },
     { name: "Persona ordering accuracy", value: ordering, display: pct(ordering), threshold: `>= ${pct(t.personaOrdering.minAccuracy)}`, pass: pairs.length ? ordering >= t.personaOrdering.minAccuracy : null, n: pairs.length },
     { name: "Re-run score difference (mean abs)", value: meanAbsDiff, display: meanAbsDiff.toFixed(1), threshold: `<= ${t.stability.maxMeanAbsDiff}`, pass: reruns.length ? meanAbsDiff <= t.stability.maxMeanAbsDiff : null, n: reruns.length },
     { name: "Second-opinion score gap (mean abs, gpt-5.4)", value: mae, display: mae.toFixed(1), threshold: REPORT_ONLY, pass: null, n: second.length },

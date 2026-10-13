@@ -10,6 +10,7 @@ import {
   TAILOR_PROMPT_VERSION,
   checkTruthfulness,
   extractRequirements,
+  fitScore,
   parseFacts,
   tailorForJob,
 } from "@jsc/core";
@@ -23,8 +24,9 @@ import { type Stack, favoredStack } from "./stack";
 // Gates (cheap model only): fabrication (code), evidence ablation, persona ordering, re-run stability.
 // Optional, report-only (gpt-5.4 judge): faithfulness of each line, and a second-opinion score.
 //
-//   pnpm evals                       full run, 40 jobs (~$0.40)
-//   pnpm evals --limit 10            CI subset (~$0.10)
+//   pnpm evals                       full run, 40 jobs (~850k tokens, ~$0.60)
+//   pnpm evals --limit 10            CI subset (~210k tokens, ~$0.15)
+//   --max-tokens N                   hard cap for this run (default: thresholds.json budget)
 //   pnpm evals --judge               + judge calibration and faithfulness (~+$1.50 on a full run)
 //   pnpm evals --second-opinion      + gpt-5.4 re-scoring every job (~+$3 on a full run)
 
@@ -33,6 +35,7 @@ const { values: args } = parseArgs({
     limit: { type: "string" },
     stability: { type: "string" },
     concurrency: { type: "string", default: "4" },
+    "max-tokens": { type: "string" },
     judge: { type: "boolean", default: false },
     "second-opinion": { type: "boolean", default: false },
   },
@@ -59,7 +62,7 @@ const profiles = Object.fromEntries(
   ["ibrahim", ...Object.values(PERSONA_FILE)].map((name) => [name, parseFacts(read(`golden/profiles/${name}.md`))]),
 );
 
-const meter = new TokenMeter(thresholds.budget.maxTokensPerRun);
+const meter = new TokenMeter(Number(args["max-tokens"] ?? thresholds.budget.maxTokensPerRun));
 const chat = metered(AzureOpenAiClient.fromEnv(process.env, { maxRetries: 8 }), meter, "tailor");
 const useJudge = args.judge || args["second-opinion"];
 const judge = useJudge
@@ -116,7 +119,11 @@ async function evalJob(job: GoldenJob, index: number): Promise<JobRun> {
   );
   if (coreEvidence.size > 0) {
     const ablated = await tailor("ibrahim", job.jd, { requirements, dropIds: coreEvidence });
-    run.ablation = { removedFactIds: [...coreEvidence], score: ablated.result.fitScore };
+    // What those requirements were worth: the score if they had been "none" from the start.
+    const withoutThem = fitScore(
+      r.requirements.map((q) => (q.importance === "core" && q.coverage !== "none" ? { ...q, coverage: "none" as const } : q)),
+    );
+    run.ablation = { removedFactIds: [...coreEvidence], score: ablated.result.fitScore, expectedDrop: r.fitScore - withoutThem };
   }
 
   if (index < stabilityCount) run.rerunScore = (await tailor("ibrahim", job.jd, { requirements })).result.fitScore;
