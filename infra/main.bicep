@@ -8,8 +8,8 @@ param location string = 'eastus2'
 @description('Object id of a user or group that gets data-plane access (local development).')
 param developerPrincipalId string = ''
 
-@description('GitHub repo (owner/name) whose Actions runs may sign in to Azure via OIDC.')
-param githubRepo string = 'Ibrobar/job-search-copilot'
+@description('OIDC subject prefix for this repo. GitHub uses immutable ids (owner@id/repo@id), so a renamed or transferred repo cannot inherit this trust. Get it from: gh api repos/OWNER/REPO/actions/oidc/customization/sub')
+param githubSubjectPrefix string = 'repo:Ibrobar@143564524/job-search-copilot@1408185261'
 
 var tags = { app: 'job-search-copilot', env: environmentName }
 
@@ -37,7 +37,7 @@ module ciIdentity 'modules/ci-identity.bicep' = {
     name: 'id-jsc-${environmentName}-github'
     location: location
     tags: tags
-    githubRepo: githubRepo
+    githubSubjectPrefix: githubSubjectPrefix
     openAiAccountName: openai.outputs.name
   }
 }

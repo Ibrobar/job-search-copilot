@@ -3,8 +3,8 @@
 param name string
 param location string
 param tags object
-@description('GitHub repo as owner/name.')
-param githubRepo string
+@description('OIDC subject prefix, e.g. repo:owner@123/name@456 (GitHub immutable subject format).')
+param githubSubjectPrefix string
 param openAiAccountName string
 
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -15,8 +15,8 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' 
 
 // PR runs (same-repo branches only: GitHub never issues OIDC tokens to fork PRs) and pushes to main.
 var subjects = {
-  'github-pr': 'repo:${githubRepo}:pull_request'
-  'github-main': 'repo:${githubRepo}:ref:refs/heads/main'
+  'github-pr': '${githubSubjectPrefix}:pull_request'
+  'github-main': '${githubSubjectPrefix}:ref:refs/heads/main'
 }
 
 @batchSize(1) // federated credentials on one identity must be written one at a time
