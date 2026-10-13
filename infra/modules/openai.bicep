@@ -7,6 +7,9 @@ param developerPrincipalId string
 param chatCapacity int = 50
 param embeddingCapacity int = 50
 
+@description('Judge model for evals only (faithfulness checks, second-opinion scores). Not used by the app.')
+param judgeCapacity int = 30
+
 resource account 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: name
   location: location
@@ -27,6 +30,9 @@ resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   sku: { name: 'GlobalStandard', capacity: chatCapacity }
   properties: {
     model: { format: 'OpenAI', name: 'gpt-5-mini', version: '2025-08-07' }
+    // Pinned: an automatic model upgrade would silently change eval results.
+    versionUpgradeOption: 'NoAutoUpgrade'
+    raiPolicyName: 'Microsoft.DefaultV2'
   }
 }
 
@@ -36,8 +42,24 @@ resource embedding 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01'
   sku: { name: 'GlobalStandard', capacity: embeddingCapacity }
   properties: {
     model: { format: 'OpenAI', name: 'text-embedding-3-small', version: '1' }
+    // Pinned: an automatic model upgrade would silently change eval results.
+    versionUpgradeOption: 'NoAutoUpgrade'
+    raiPolicyName: 'Microsoft.DefaultV2'
   }
   dependsOn: [chat] // deployments on one account must be created one at a time
+}
+
+resource judge 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+  parent: account
+  name: 'gpt-5.4'
+  sku: { name: 'GlobalStandard', capacity: judgeCapacity }
+  properties: {
+    model: { format: 'OpenAI', name: 'gpt-5.4', version: '2026-03-05' }
+    // Pinned: an automatic model upgrade would silently change eval results.
+    versionUpgradeOption: 'NoAutoUpgrade'
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  dependsOn: [embedding]
 }
 
 // Cognitive Services OpenAI User: call models, no management rights.
@@ -56,3 +78,4 @@ resource developerAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
 output endpoint string = account.properties.endpoint
 output chatDeployment string = chat.name
 output embeddingDeployment string = embedding.name
+output judgeDeployment string = judge.name

@@ -31,3 +31,4 @@ output AZURE_RESOURCE_GROUP string = rg.name
 output AZURE_OPENAI_ENDPOINT string = openai.outputs.endpoint
 output AZURE_OPENAI_CHAT_DEPLOYMENT string = openai.outputs.chatDeployment
 output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = openai.outputs.embeddingDeployment
+output AZURE_OPENAI_JUDGE_DEPLOYMENT string = openai.outputs.judgeDeployment
