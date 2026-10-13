@@ -8,6 +8,9 @@ param location string = 'eastus2'
 @description('Object id of a user or group that gets data-plane access (local development).')
 param developerPrincipalId string = ''
 
+@description('GitHub repo (owner/name) whose Actions runs may sign in to Azure via OIDC.')
+param githubRepo string = 'Ibrobar/job-search-copilot'
+
 var tags = { app: 'job-search-copilot', env: environmentName }
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
@@ -27,8 +30,21 @@ module openai 'modules/openai.bicep' = {
   }
 }
 
+module ciIdentity 'modules/ci-identity.bicep' = {
+  scope: rg
+  name: 'ci-identity'
+  params: {
+    name: 'id-jsc-${environmentName}-github'
+    location: location
+    tags: tags
+    githubRepo: githubRepo
+    openAiAccountName: openai.outputs.name
+  }
+}
+
 output AZURE_RESOURCE_GROUP string = rg.name
 output AZURE_OPENAI_ENDPOINT string = openai.outputs.endpoint
 output AZURE_OPENAI_CHAT_DEPLOYMENT string = openai.outputs.chatDeployment
 output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = openai.outputs.embeddingDeployment
 output AZURE_OPENAI_JUDGE_DEPLOYMENT string = openai.outputs.judgeDeployment
+output AZURE_CI_CLIENT_ID string = ciIdentity.outputs.clientId

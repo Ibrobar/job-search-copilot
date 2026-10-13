@@ -75,6 +75,7 @@ resource developerAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   }
 }
 
+output name string = account.name
 output endpoint string = account.properties.endpoint
 output chatDeployment string = chat.name
 output embeddingDeployment string = embedding.name
