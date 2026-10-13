@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -43,3 +46,37 @@ jobs:
         with:
           name: playwright-report
           path: apps/web/playwright-report
+
+  evals:
+    name: Evals (LLM quality gate)
+    runs-on: ubuntu-latest
+    # Fork PRs get no OIDC token, so they can't run (or pay for) evals.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write # OIDC sign-in to Azure; no stored secret
+    env:
+      AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+      AZURE_OPENAI_CHAT_DEPLOYMENT: gpt-5-mini
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: text-embedding-3-small
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CI_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      # Fixed 10-job subset, cheap model only, hard token cap (evals/thresholds.json).
+      # The gpt-5.4 judge (faithfulness, report-only) runs manually: `pnpm evals --judge`.
+      - run: pnpm --filter @jsc/evals run evals --limit 10 --max-tokens 400000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: evals/results

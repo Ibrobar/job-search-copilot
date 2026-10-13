@@ -11,6 +11,10 @@ const base: TailorResult = {
   fitScore: 85,
   matchedSkills: ["Next.js"],
   missingSkills: ["Kubernetes"],
+  requirements: [
+    { name: "Next.js", importance: "core", coverage: "full", sourceFactIds: ["f2"] },
+    { name: "Kubernetes", importance: "nice", coverage: "none", sourceFactIds: [] },
+  ],
   summary: { text: "Engineer who ships.", sourceFactIds: ["f2"] },
   bullets: [{ text: "Triaged 50+ alerts daily", sourceFactIds: ["f1"] }],
   skills: ["nextjs", "Supabase", "ServiceNow"],
@@ -36,5 +40,21 @@ describe("checkTruthfulness", () => {
   it("flags a skill the user never claimed", () => {
     const r = { ...base, skills: [...base.skills, "Kubernetes"] };
     expect(checkTruthfulness(r, facts)).toEqual([{ kind: "unsupported-skill", skill: "Kubernetes" }]);
+  });
+
+  it("flags a requirement marked covered without evidence", () => {
+    const r = {
+      ...base,
+      requirements: [{ name: "Kubernetes", importance: "core" as const, coverage: "full" as const, sourceFactIds: [] }],
+    };
+    expect(checkTruthfulness(r, facts)).toEqual([{ kind: "unsourced-requirement", requirement: "Kubernetes" }]);
+  });
+
+  it("accepts a skill by its short form", () => {
+    const withVariants: Fact[] = [
+      { id: "s1", section: "skill", text: "x", skills: ["JavaScript (ES6+)", "Linux/UNIX"] },
+    ];
+    const r = { ...base, summary: null, bullets: [], requirements: [], skills: ["JavaScript", "Linux"] };
+    expect(checkTruthfulness(r, withVariants)).toEqual([]);
   });
 });

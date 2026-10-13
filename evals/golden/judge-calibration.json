@@ -1,0 +1,153 @@
+{
+  "_comment": "Known-answer cases for the faithfulness judge. Evidence text is inline so profile edits can't break it. 'expected' is set by construction: faithful paraphrases are true, planted additions are false. If the judge misses these, its faithfulness numbers can't be trusted.",
+  "cases": [
+    {
+      "kind": "bullet",
+      "text": "Developed a Deno/TypeScript edge function serving as an action-routed REST API, with concurrency control and alert deduplication.",
+      "expected": true,
+      "why": "verb paraphrase only",
+      "evidence": [
+        "(Software Engineer, Boycat (Contract) — Sept 2025 to Aug 2026 — Remote.) Deno/TypeScript edge function (action-routed REST API) with concurrency control, alert dedup, templated HTML emails on cron."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "At Boycat, owned the Price Watch feature end to end across three GitHub repos, from the extension UI to a Supabase edge function behind OAuth2 sign-in.",
+      "expected": true,
+      "why": "employer from the fact's context",
+      "evidence": [
+        "(Software Engineer, Boycat (Contract) — Sept 2025 to Aug 2026 — Remote.) Owned the Price Watch feature end-to-end across three GitHub repos (Amazon price tracking + email alerts): extension UI in JavaScript (ES6+) and HTML5/CSS3, React dashboard pages on the Next.js site with Tailwind CSS, Supabase edge function behind OAuth2 sign-in."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Triaged 50+ daily alerts in Zenoss and ServiceNow while diagnosing production issues in Docker containers on Linux.",
+      "expected": true,
+      "why": "reordered restatement",
+      "evidence": [
+        "(Lane Controller Analyst, QuarterHill — March 2024 to Present.) Diagnoses production issues in containerized Docker apps on Linux via SSH/CLI/log analysis; triages 50+ daily alerts (Zenoss, ServiceNow)."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Built a RESTful API with OAuth2 authentication and webhook integration for a Laravel (PHP) app serving 150,000+ users.",
+      "expected": true,
+      "why": "combines two cited facts",
+      "evidence": [
+        "(Junior Software Developer, TNZ International (Contract) — June 2024 to Aug 2025 — Remote.) Laravel (PHP) app serving 150,000+ users.",
+        "(Junior Software Developer, TNZ International (Contract) — June 2024 to Aug 2025 — Remote.) Built a RESTful API with OAuth2 authentication and webhook integration; helped drive $500K+ revenue; Figma UI design; HTML5/CSS3 views in the Laravel web app; Flutter mobile front-end."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Migrated the Amazon data layer from PA-API to the Creators API using a recursive response transformer.",
+      "expected": true,
+      "why": "near-verbatim",
+      "evidence": [
+        "(Software Engineer, Boycat (Contract) — Sept 2025 to Aug 2026 — Remote.) Migrated Amazon data layer PA-API -> Creators API via a recursive response transformer."
+      ]
+    },
+    {
+      "kind": "summary",
+      "text": "Full-stack engineer with a B.S. in Software Engineering from UT Dallas who builds with React, Next.js and TypeScript.",
+      "expected": true,
+      "why": "summary built from summary facts",
+      "evidence": [
+        "Full-stack software engineer (B.S. in Software Engineering, UT Dallas) who likes owning a feature from the Figma file to the deployed service.",
+        "Day to day that means React, Next.js, and TypeScript on the front end with Tailwind CSS and HTML5/CSS3; JavaScript (ES6+), REST APIs, and OAuth2 in the middle; and Supabase, Laravel (PHP), Docker, and Linux underneath, all managed through Git/GitHub."
+      ]
+    },
+    {
+      "kind": "requirement",
+      "text": "The candidate fully meets: REST API development",
+      "expected": true,
+      "why": "two hands-on REST API facts",
+      "evidence": [
+        "(Software Engineer, Boycat (Contract) — Sept 2025 to Aug 2026 — Remote.) Deno/TypeScript edge function (action-routed REST API) with concurrency control, alert dedup, templated HTML emails on cron.",
+        "(Junior Software Developer, TNZ International (Contract) — June 2024 to Aug 2025 — Remote.) Built a RESTful API with OAuth2 authentication and webhook integration; helped drive $500K+ revenue; Figma UI design; HTML5/CSS3 views in the Laravel web app; Flutter mobile front-end."
+      ]
+    },
+    {
+      "kind": "requirement",
+      "text": "The candidate fully meets: Docker",
+      "expected": true,
+      "why": "hands-on Docker in production",
+      "evidence": [
+        "(Lane Controller Analyst, QuarterHill — March 2024 to Present.) Diagnoses production issues in containerized Docker apps on Linux via SSH/CLI/log analysis; triages 50+ daily alerts (Zenoss, ServiceNow)."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Built a Deno/TypeScript edge function REST API that cut alert latency by 40%.",
+      "expected": false,
+      "why": "invented metric",
+      "evidence": [
+        "(Software Engineer, Boycat (Contract) — Sept 2025 to Aug 2026 — Remote.) Deno/TypeScript edge function (action-routed REST API) with concurrency control, alert dedup, templated HTML emails on cron."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Led a team of 4 engineers to own the Price Watch feature across three GitHub repos.",
+      "expected": false,
+      "why": "invented team leadership",
+      "evidence": [
+        "(Software Engineer, Boycat (Contract) — Sept 2025 to Aug 2026 — Remote.) Owned the Price Watch feature end-to-end across three GitHub repos (Amazon price tracking + email alerts): extension UI in JavaScript (ES6+) and HTML5/CSS3, React dashboard pages on the Next.js site with Tailwind CSS, Supabase edge function behind OAuth2 sign-in."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Fixed production extension bugs for a Chrome extension used by millions of shoppers.",
+      "expected": false,
+      "why": "inflated scale",
+      "evidence": [
+        "(Software Engineer, Boycat (Contract) — Sept 2025 to Aug 2026 — Remote.) Fixed production extension bugs (JavaScript ES6+ codebase) through release 3.1.21 via the Git/GitHub review flow."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Built a RESTful API with OAuth2 and GraphQL subscriptions for a Laravel app serving 150,000+ users.",
+      "expected": false,
+      "why": "invented technology",
+      "evidence": [
+        "(Junior Software Developer, TNZ International (Contract) — June 2024 to Aug 2025 — Remote.) Laravel (PHP) app serving 150,000+ users.",
+        "(Junior Software Developer, TNZ International (Contract) — June 2024 to Aug 2025 — Remote.) Built a RESTful API with OAuth2 authentication and webhook integration; helped drive $500K+ revenue; Figma UI design; HTML5/CSS3 views in the Laravel web app; Flutter mobile front-end."
+      ]
+    },
+    {
+      "kind": "bullet",
+      "text": "Diagnosed production issues in Docker containers on Linux, resolving network, permissions and data-access problems for customers.",
+      "expected": false,
+      "why": "invented specifics",
+      "evidence": [
+        "(Lane Controller Analyst, QuarterHill — March 2024 to Present.) Diagnoses production issues in containerized Docker apps on Linux via SSH/CLI/log analysis; triages 50+ daily alerts (Zenoss, ServiceNow)."
+      ]
+    },
+    {
+      "kind": "requirement",
+      "text": "The candidate fully meets: Integration with the Anthropic Claude API",
+      "expected": false,
+      "why": "used Claude Code, never integrated the API",
+      "evidence": [
+        "(Ticket Queue Automation — built for the QuarterHill team — June 2026 to Sept 2026.) Built with AI coding agents (Claude Code) from Ibrahim's own specs/rules."
+      ]
+    },
+    {
+      "kind": "requirement",
+      "text": "The candidate fully meets: Kubernetes",
+      "expected": false,
+      "why": "Docker is adjacent, not Kubernetes",
+      "evidence": [
+        "(Lane Controller Analyst, QuarterHill — March 2024 to Present.) Diagnoses production issues in containerized Docker apps on Linux via SSH/CLI/log analysis; triages 50+ daily alerts (Zenoss, ServiceNow)."
+      ]
+    },
+    {
+      "kind": "requirement",
+      "text": "The candidate fully meets: Python",
+      "expected": false,
+      "why": "skills list only",
+      "evidence": [
+        "(Languages) Languages: TypeScript, JavaScript (ES6+), Python, C++, Java, MIPS, PHP, SQL, HTML5/CSS3"
+      ]
+    }
+  ]
+}
