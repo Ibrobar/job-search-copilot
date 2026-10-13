@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MockLlmClient } from "../llm/mock";
 import { InMemoryFactStore } from "../retrieval/store";
 import type { Fact, RequirementSpec, TailorDraft } from "../schemas";
-import { capByEvidence, ingestFacts, tailorForJob } from "./pipeline";
+import { FULL_PROFILE_LIMIT, capByEvidence, ingestFacts, tailorForJob } from "./pipeline";
 
 const facts: Fact[] = [
   { id: "e1", section: "experience", text: "Built a REST API in Node.js", skills: ["Node.js"] },
@@ -94,6 +94,30 @@ describe("tailorForJob", () => {
       facts,
     );
     expect(capped.map((r) => r.coverage)).toEqual(["partial", "full"]);
+  });
+
+  it("sends a small profile in full without a retrieval call", async () => {
+    const { llm, store } = await setup();
+    const embed = vi.spyOn(llm, "embed");
+    await tailorForJob({ userId: "u1", jobDescription: "Node.js role", llm, store, requirements: specs });
+    expect(embed).not.toHaveBeenCalled();
+    expect(llm.calls[0]![1]!.content).toContain("[e2] Answered help desk tickets");
+  });
+
+  it("retrieves only the top matches for a large profile", async () => {
+    const llm = new MockLlmClient(() => draft);
+    const store = new InMemoryFactStore();
+    const big: Fact[] = Array.from({ length: FULL_PROFILE_LIMIT + 10 }, (_, i) => ({
+      id: `e${i}`,
+      section: "experience",
+      text: i === 7 ? "Built Kubernetes operators in Go" : `Answered help desk ticket batch ${i}`,
+      skills: [],
+    }));
+    await ingestFacts({ userId: "u1", facts: big, llm, store });
+    await tailorForJob({ userId: "u1", jobDescription: "Kubernetes operators in Go", llm, store, requirements: specs, topK: 5 });
+    const sent = llm.calls[0]![1]!.content;
+    expect(sent).toContain("[e7] Built Kubernetes operators in Go");
+    expect(sent.match(/^\[e\d+\]/gm)).toHaveLength(5);
   });
 
   it("never sends another user's facts", async () => {

@@ -11,6 +11,7 @@ Backend engineer who likes boring, reliable systems. Ships Node.js services on A
 ## Professional Experience
 - Software Engineer, Acme Corp -- Jan 2024 to Present -- Remote.
   Built a REST API in Node.js serving 2,000+ users (confirmed by Jane 2026-01-01).
+  Chrome extension (describe as 500+ users, NEVER thousands), React dashboard.
   Do not claim Kubernetes.
 - Support Analyst, Initech -- 2021 to 2023.
 - [REMOVED] Old Project -- never use.

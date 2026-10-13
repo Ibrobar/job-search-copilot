@@ -78,12 +78,7 @@ export async function tailorForJob(args: {
     usage.push(extracted.usage);
   }
 
-  const query = await args.llm.embed([jd]);
-  usage.push(query.usage);
-  const hits = await args.store.search(args.userId, query.vectors[0]!, args.topK ?? 24);
-  // Skill and summary facts are small and always relevant to coverage, so they always go in.
-  const always = (await args.store.all(args.userId)).filter((f) => f.section === "skill" || f.section === "summary");
-  const facts = dedupeById([...always, ...hits.map((h) => h.fact)]);
+  const facts = await selectFacts(args.llm, args.store, args.userId, jd, args.topK ?? 24, usage);
 
   const chat = await args.llm.chatJson({
     schema: TailorDraftSchema,
@@ -129,6 +124,24 @@ export async function tailorForJob(args: {
     usage,
     promptVersions: [REQUIREMENTS_PROMPT_VERSION, TAILOR_PROMPT_VERSION],
   };
+}
+
+/**
+ * Below this many facts the whole profile fits in the prompt, so every fact goes in. Cutting a small
+ * profile to top-K hid real evidence and made scores rise when evidence was removed (the cut shifted).
+ */
+export const FULL_PROFILE_LIMIT = 60;
+
+/** Which facts the model sees: all of a small profile, or the top-K by similarity for a large one. */
+async function selectFacts(llm: LlmClient, store: FactStore, userId: string, jd: string, topK: number, usage: LlmUsage[]) {
+  const all = await store.all(userId);
+  if (all.length <= FULL_PROFILE_LIMIT) return all;
+  const query = await llm.embed([jd]);
+  usage.push(query.usage);
+  const hits = await store.search(userId, query.vectors[0]!, topK);
+  // Skill and summary facts are small and always relevant to coverage, so they always go in.
+  const always = all.filter((f) => f.section === "skill" || f.section === "summary");
+  return dedupeById([...always, ...hits.map((h) => h.fact)]);
 }
 
 const SELF_DESCRIPTION: Fact["section"][] = ["skill", "summary"];

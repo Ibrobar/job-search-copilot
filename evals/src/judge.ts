@@ -67,11 +67,16 @@ export function claimsOf(result: TailorResult): ClaimItem[] {
   ];
 }
 
-export type CalibrationCase = ClaimItem & { expected: boolean; why: string };
+/** Evidence is inline text, so editing a profile (and shifting its fact ids) can't break a case. */
+export type CalibrationCase = { kind: ClaimKind; text: string; evidence: string[]; expected: boolean; why: string };
 
 /** Score the judge on known-answer cases. Returns the accuracy and every miss. */
-export async function calibrateJudge(llm: LlmClient, cases: CalibrationCase[], facts: Fact[]) {
-  const verdicts = await judgeClaims(llm, cases, facts);
+export async function calibrateJudge(llm: LlmClient, cases: CalibrationCase[]) {
+  const facts: Fact[] = cases.flatMap((c, i) =>
+    c.evidence.map((text, j) => ({ id: `c${i}-${j}`, section: "experience" as const, text, skills: [] })),
+  );
+  const items: ClaimItem[] = cases.map((c, i) => ({ kind: c.kind, text: c.text, ids: c.evidence.map((_, j) => `c${i}-${j}`) }));
+  const verdicts = await judgeClaims(llm, items, facts);
   const misses = cases
     .map((c, i) => ({ ...c, got: verdicts[i]!.supported, reason: verdicts[i]!.reason }))
     .filter((c) => c.got !== c.expected);

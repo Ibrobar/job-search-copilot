@@ -23,15 +23,16 @@ import { type Stack, favoredStack } from "./stack";
 // fabrication (code), faithfulness (judge model), evidence ablation, persona ordering,
 // re-run stability, and a report-only second-opinion score from the judge model.
 //
-//   pnpm evals                 full run (40 jobs)
-//   pnpm evals --limit 10      CI subset
+//   pnpm evals                       full run, 40 jobs (~$2)
+//   pnpm evals --limit 10            CI subset (~$0.50)
+//   pnpm evals --second-opinion      adds gpt-5.4 re-scoring every job (~+$3 on a full run)
 
 const { values: args } = parseArgs({
   options: {
     limit: { type: "string" },
     stability: { type: "string" },
     concurrency: { type: "string", default: "4" },
-    "no-second-opinion": { type: "boolean", default: false },
+    "second-opinion": { type: "boolean", default: false },
   },
 });
 
@@ -115,7 +116,7 @@ async function evalJob(job: GoldenJob, index: number): Promise<JobRun> {
 
   if (index < stabilityCount) run.rerunScore = (await tailor("ibrahim", job.jd, { requirements })).result.fitScore;
   // The judge extracts its own requirements, so its score is an independent second opinion.
-  if (!args["no-second-opinion"]) run.secondOpinionScore = (await tailor("ibrahim", job.jd, { llm: judge })).result.fitScore;
+  if (args["second-opinion"]) run.secondOpinionScore = (await tailor("ibrahim", job.jd, { llm: judge })).result.fitScore;
 
   const favored = favoredStack(`${job.title}\n${job.jd}`);
   if (favored) {
@@ -152,7 +153,7 @@ let calibration: Awaited<ReturnType<typeof calibrateJudge>>;
 try {
   // Check the judge first: if it can't tell planted fabrications from paraphrases, its verdicts mean nothing.
   const { cases } = JSON.parse(read("golden/judge-calibration.json")) as { cases: CalibrationCase[] };
-  calibration = await calibrateJudge(judge, cases, profiles.ibrahim!.facts);
+  calibration = await calibrateJudge(judge, cases);
   runs = await pool(jobs, Number(args.concurrency), evalJob);
 } catch (e) {
   if (e instanceof BudgetExceededError) {

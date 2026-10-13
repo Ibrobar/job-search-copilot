@@ -31,9 +31,14 @@ describe("parseFacts", () => {
     expect(byText("NOT built")).toBeUndefined();
     expect(rules).toEqual([
       "Tailored summaries stay in this voice.",
+      "Software Engineer, Acme Corp -- Jan 2024 to Present -- Remote: describe as 500+ users, NEVER thousands",
       "Software Engineer, Acme Corp -- Jan 2024 to Present -- Remote: Do not claim Kubernetes.",
       "Budget App -- 2023: A mobile version is NOT built.",
     ]);
+  });
+
+  it("keeps the fact when only a parenthetical inside it is an instruction", () => {
+    expect(byText("Chrome extension")?.text).toBe("Chrome extension, React dashboard.");
   });
 
   it("makes one fact per skill category and tags other facts with the skills they mention", () => {

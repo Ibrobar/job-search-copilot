@@ -82,12 +82,17 @@ export function parseFacts(markdown: string): ParsedFacts {
     const sentences = splitSentences(e.text.replace(ANNOTATION, ""));
     // The first sentence of a role or project is its header ("Engineer, Acme -- 2024 to 2025 -- Remote").
     const header = e.section === "experience" || e.section === "project" ? sentences[0] : undefined;
-    for (const s of sentences) {
+    const addRule = (r: string) => rules.push(header ? `${header.replace(/\.$/, "")}: ${r}` : r);
+    for (const raw of sentences) {
+      // An instruction in parentheses inside a fact ("Chrome extension (NEVER say millions), ...")
+      // becomes a rule; the rest of the sentence stays a citable fact.
+      const s = raw.replace(/\s*\(([^()]*)\)/g, (m, inner: string) => (isRule(inner) ? (addRule(inner.trim()), "") : m)).trim();
+      if (!s || /^[.,;]$/.test(s)) continue;
       if (isRule(s) || /^\(.*\)\.?$/.test(s)) {
-        rules.push(header ? `${header.replace(/\.$/, "")}: ${stripParens(s)}` : stripParens(s));
+        addRule(stripParens(s));
         continue;
       }
-      facts.push({ id: nextId(e.section), section: e.section, text: s, skills: [], context: s === header ? undefined : header });
+      facts.push({ id: nextId(e.section), section: e.section, text: s, skills: [], context: raw === header ? undefined : header });
     }
   }
 
