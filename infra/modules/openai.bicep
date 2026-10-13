@@ -3,12 +3,12 @@ param location string
 param tags object
 param developerPrincipalId string
 
-@description('Thousands of tokens per minute per deployment. Kept low on purpose: caps spend.')
-param chatCapacity int = 50
+@description('Thousands of tokens per minute per deployment. A rate limit, not a cost: billing is per token.')
+param chatCapacity int = 200
 param embeddingCapacity int = 50
 
 @description('Judge model for evals only (faithfulness checks, second-opinion scores). Not used by the app.')
-param judgeCapacity int = 30
+param judgeCapacity int = 100
 
 resource account 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: name
