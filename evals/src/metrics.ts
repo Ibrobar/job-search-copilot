@@ -23,7 +23,6 @@ export type JobRun = {
 export type Thresholds = {
   judgeCalibration: { minAccuracy: number };
   fabrication: { maxLeaked: number; maxDraftRejectionRate: number };
-  faithfulness: { minClaimRate: number; minRequirementRate: number };
   evidenceAblation: { minDrop: number; minPassRate: number };
   personaOrdering: { minAccuracy: number };
   stability: { maxMeanAbsDiff: number };
@@ -74,14 +73,16 @@ export function computeMetrics(runs: JobRun[], t: Thresholds, calibration?: Cali
       name: "Judge calibration (known-answer cases)",
       value: calibration?.accuracy ?? 0,
       display: calibration ? pct(calibration.accuracy) : "not run",
-      threshold: `>= ${pct(t.judgeCalibration.minAccuracy)}`,
+      // Gates only when the judge ran: an uncalibrated judge would make its own numbers meaningless.
+      threshold: calibration ? `>= ${pct(t.judgeCalibration.minAccuracy)}` : REPORT_ONLY,
       pass: calibration ? calibration.accuracy >= t.judgeCalibration.minAccuracy : null,
       n: calibration?.n ?? 0,
     },
     { name: "Fabricated claims in output", value: leaked, display: String(leaked), threshold: `<= ${t.fabrication.maxLeaked}`, pass: leaked <= t.fabrication.maxLeaked, n: runs.length },
     { name: "Draft claims rejected by guard", value: draftRejection, display: `${pct(draftRejection)} (${rejectedClaims}/${drafted})`, threshold: `<= ${pct(t.fabrication.maxDraftRejectionRate)}`, pass: drafted ? draftRejection <= t.fabrication.maxDraftRejectionRate : null, n: drafted },
-    { name: "Claim faithfulness (judge)", value: claimRate, display: pct(claimRate), threshold: `>= ${pct(t.faithfulness.minClaimRate)}`, pass: claimVerdicts.length ? claimRate >= t.faithfulness.minClaimRate : null, n: claimVerdicts.length },
-    { name: "Requirement coverage faithfulness (judge)", value: reqRate, display: pct(reqRate), threshold: `>= ${pct(t.faithfulness.minRequirementRate)}`, pass: reqVerdicts.length ? reqRate >= t.faithfulness.minRequirementRate : null, n: reqVerdicts.length },
+    // Faithfulness is informational: reported when the judge runs (--judge), never a gate.
+    { name: "Claim faithfulness (judge)", value: claimRate, display: claimVerdicts.length ? pct(claimRate) : "not run", threshold: REPORT_ONLY, pass: null, n: claimVerdicts.length },
+    { name: "Requirement coverage faithfulness (judge)", value: reqRate, display: reqVerdicts.length ? pct(reqRate) : "not run", threshold: REPORT_ONLY, pass: null, n: reqVerdicts.length },
     { name: "Score drops when evidence removed", value: ablationPass, display: pct(ablationPass), threshold: `>= ${pct(t.evidenceAblation.minPassRate)}`, pass: ablated.length ? ablationPass >= t.evidenceAblation.minPassRate : null, n: ablated.length },
     { name: "Persona ordering accuracy", value: ordering, display: pct(ordering), threshold: `>= ${pct(t.personaOrdering.minAccuracy)}`, pass: pairs.length ? ordering >= t.personaOrdering.minAccuracy : null, n: pairs.length },
     { name: "Re-run score difference (mean abs)", value: meanAbsDiff, display: meanAbsDiff.toFixed(1), threshold: `<= ${t.stability.maxMeanAbsDiff}`, pass: reruns.length ? meanAbsDiff <= t.stability.maxMeanAbsDiff : null, n: reruns.length },

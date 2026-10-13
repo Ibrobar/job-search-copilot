@@ -19,19 +19,21 @@ import { type JobRun, type Thresholds, computeMetrics, failedGates } from "./met
 import { BudgetExceededError, TokenMeter, metered } from "./metered";
 import { type Stack, favoredStack } from "./stack";
 
-// Eval runner. Runs the real pipeline on the golden jobs and checks it without hand labels:
-// fabrication (code), faithfulness (judge model), evidence ablation, persona ordering,
-// re-run stability, and a report-only second-opinion score from the judge model.
+// Eval runner. Runs the real pipeline on the golden jobs and checks it without hand labels.
+// Gates (cheap model only): fabrication (code), evidence ablation, persona ordering, re-run stability.
+// Optional, report-only (gpt-5.4 judge): faithfulness of each line, and a second-opinion score.
 //
-//   pnpm evals                       full run, 40 jobs (~$2)
-//   pnpm evals --limit 10            CI subset (~$0.50)
-//   pnpm evals --second-opinion      adds gpt-5.4 re-scoring every job (~+$3 on a full run)
+//   pnpm evals                       full run, 40 jobs (~$0.40)
+//   pnpm evals --limit 10            CI subset (~$0.10)
+//   pnpm evals --judge               + judge calibration and faithfulness (~+$1.50 on a full run)
+//   pnpm evals --second-opinion      + gpt-5.4 re-scoring every job (~+$3 on a full run)
 
 const { values: args } = parseArgs({
   options: {
     limit: { type: "string" },
     stability: { type: "string" },
     concurrency: { type: "string", default: "4" },
+    judge: { type: "boolean", default: false },
     "second-opinion": { type: "boolean", default: false },
   },
 });
@@ -59,11 +61,14 @@ const profiles = Object.fromEntries(
 
 const meter = new TokenMeter(thresholds.budget.maxTokensPerRun);
 const chat = metered(AzureOpenAiClient.fromEnv(process.env, { maxRetries: 8 }), meter, "tailor");
-const judge = metered(
-  AzureOpenAiClient.fromEnv(process.env, { chatDeployment: required("AZURE_OPENAI_JUDGE_DEPLOYMENT"), maxRetries: 8 }),
-  meter,
-  "judge",
-);
+const useJudge = args.judge || args["second-opinion"];
+const judge = useJudge
+  ? metered(
+      AzureOpenAiClient.fromEnv(process.env, { chatDeployment: required("AZURE_OPENAI_JUDGE_DEPLOYMENT"), maxRetries: 8 }),
+      meter,
+      "judge",
+    )
+  : undefined;
 
 // Embed each profile once; ablations reuse the vectors instead of re-embedding.
 const vectors = new Map<string, { fact: Fact; vector: number[] }[]>();
@@ -102,7 +107,7 @@ async function evalJob(job: GoldenJob, index: number): Promise<JobRun> {
     draftedClaims: drafted,
     rejected: main.rejected,
     leaked: checkTruthfulness(r, facts),
-    verdicts: await judgeClaims(judge, claimsOf(r), facts),
+    verdicts: args.judge ? await judgeClaims(judge!, claimsOf(r), facts) : [],
   };
 
   // Ablation: remove the evidence behind every covered core requirement; the score must fall.
@@ -116,7 +121,7 @@ async function evalJob(job: GoldenJob, index: number): Promise<JobRun> {
 
   if (index < stabilityCount) run.rerunScore = (await tailor("ibrahim", job.jd, { requirements })).result.fitScore;
   // The judge extracts its own requirements, so its score is an independent second opinion.
-  if (args["second-opinion"]) run.secondOpinionScore = (await tailor("ibrahim", job.jd, { llm: judge })).result.fitScore;
+  if (args["second-opinion"]) run.secondOpinionScore = (await tailor("ibrahim", job.jd, { llm: judge! })).result.fitScore;
 
   const favored = favoredStack(`${job.title}\n${job.jd}`);
   if (favored) {
@@ -147,13 +152,15 @@ async function pool<T, R>(items: T[], n: number, fn: (item: T, i: number) => Pro
 }
 
 const started = Date.now();
-console.log(`Evaluating ${jobs.length} jobs (prompts ${REQUIREMENTS_PROMPT_VERSION} + ${TAILOR_PROMPT_VERSION}, judge ${JUDGE_PROMPT_VERSION}, cap ${meter.maxTokens} tokens)`);
+console.log(`Evaluating ${jobs.length} jobs (prompts ${REQUIREMENTS_PROMPT_VERSION} + ${TAILOR_PROMPT_VERSION}, judge ${args.judge ? JUDGE_PROMPT_VERSION : "off"}, cap ${meter.maxTokens} tokens)`);
 let runs: JobRun[];
-let calibration: Awaited<ReturnType<typeof calibrateJudge>>;
+let calibration: Awaited<ReturnType<typeof calibrateJudge>> | undefined;
 try {
-  // Check the judge first: if it can't tell planted fabrications from paraphrases, its verdicts mean nothing.
-  const { cases } = JSON.parse(read("golden/judge-calibration.json")) as { cases: CalibrationCase[] };
-  calibration = await calibrateJudge(judge, cases);
+  if (args.judge) {
+    // Check the judge first: if it can't tell planted fabrications from paraphrases, its verdicts mean nothing.
+    const { cases } = JSON.parse(read("golden/judge-calibration.json")) as { cases: CalibrationCase[] };
+    calibration = await calibrateJudge(judge!, cases);
+  }
   runs = await pool(jobs, Number(args.concurrency), evalJob);
 } catch (e) {
   if (e instanceof BudgetExceededError) {
@@ -195,7 +202,7 @@ if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMM
 console.log(`\n${md}`);
 const unsupported = runs.flatMap((r) => r.verdicts.filter((v) => !v.supported).map((v) => `  [${r.company}] ${v.text}\n      -> ${v.reason}`));
 if (unsupported.length) console.log(`Unsupported claims (judge):\n${unsupported.join("\n")}`);
-for (const m of calibration.misses) console.log(`Judge calibration miss (expected ${m.expected}): ${m.text}\n      -> ${m.reason}`);
+for (const m of calibration?.misses ?? []) console.log(`Judge calibration miss (expected ${m.expected}): ${m.text}\n      -> ${m.reason}`);
 process.exit(summary.pass ? 0 : 1);
 
 function required(k: string): string {

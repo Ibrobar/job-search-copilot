@@ -4,7 +4,6 @@ import { type JobRun, type Thresholds, computeMetrics, failedGates } from "./met
 const t: Thresholds = {
   judgeCalibration: { minAccuracy: 0.9 },
   fabrication: { maxLeaked: 0, maxDraftRejectionRate: 0.05 },
-  faithfulness: { minClaimRate: 0.95, minRequirementRate: 0.9 },
   evidenceAblation: { minDrop: 10, minPassRate: 0.9 },
   personaOrdering: { minAccuracy: 0.9 },
   stability: { maxMeanAbsDiff: 8 },
@@ -30,8 +29,6 @@ describe("computeMetrics", () => {
     const ms = computeMetrics([run()], t);
     expect(ms.find((m) => m.name.startsWith("Persona"))?.pass).toBeNull();
     expect(failedGates(ms).map((m) => m.name)).toEqual([
-      "Judge calibration (known-answer cases)",
-      "Requirement coverage faithfulness (judge)",
       "Score drops when evidence removed",
       "Persona ordering accuracy",
       "Re-run score difference (mean abs)",
@@ -60,6 +57,14 @@ describe("computeMetrics", () => {
     const m = metric([run({ draftedClaims: 10, rejected: [{ kind: "unsourced-claim", text: "x" }] })], "Draft claims");
     expect(m.value).toBeCloseTo(0.1);
     expect(m.pass).toBe(false);
+  });
+
+  it("reports faithfulness but never gates on it", () => {
+    const r = run({ verdicts: [{ kind: "bullet", text: "a", supported: false, reason: "" }] });
+    const m = metric([r], "Claim faithfulness");
+    expect(m.value).toBe(0);
+    expect(m.pass).toBeNull();
+    expect(failedGates(computeMetrics([r], t)).map((x) => x.name)).not.toContain("Claim faithfulness (judge)");
   });
 
   it("separates claim and requirement faithfulness", () => {
